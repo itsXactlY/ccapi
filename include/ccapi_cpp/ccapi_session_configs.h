@@ -9,6 +9,17 @@
 #include "ccapi_cpp/ccapi_macro.h"
 #include "ccapi_cpp/ccapi_util_private.h"
 
+// Runtime URL override holder (REST + WS)
+struct ExchangeUrlOverrides {
+  std::string restUrl;      // optional REST base URL override
+  std::string wsPublicUrl;  // optional public WS base URL override
+  std::string wsPrivateUrl; // optional private WS base URL override
+
+  bool empty() const {
+    return restUrl.empty() && wsPublicUrl.empty() && wsPrivateUrl.empty();
+  }
+};
+
 namespace ccapi {
 
 /**
@@ -50,6 +61,47 @@ class SessionConfigs {
   void setUrlFixMarketDataBase(const std::map<std::string, std::string>& urlFixMarketDataBase) { this->urlFixMarketDataBase = urlFixMarketDataBase; }
 
   void setCredential(const std::map<std::string, std::string>& credential) { this->credential = credential; }
+
+  // override REST base URL for an exchange ("okx", "binance")
+  void setExchangeRestUrlOverride(const std::string& exchange,
+                                  const std::string& url) {
+    auto& o = exchangeUrlOverrideMap_[exchange];
+    o.restUrl = url;
+  }
+
+  // override BOTH public and private websocket base URLs
+  void setExchangeWebsocketUrlsOverride(const std::string& exchange,
+                                        const std::string& wsPublicUrl,
+                                        const std::string& wsPrivateUrl) {
+    auto& o = exchangeUrlOverrideMap_[exchange];
+    o.wsPublicUrl  = wsPublicUrl;
+    o.wsPrivateUrl = wsPrivateUrl;
+  }
+
+  // override ONLY public websocket base URL
+  void setExchangeWebsocketPublicUrlOverride(const std::string& exchange,
+                                             const std::string& wsPublicUrl) {
+    auto& o = exchangeUrlOverrideMap_[exchange];
+    o.wsPublicUrl = wsPublicUrl;
+  }
+
+  // override ONLY private websocket base URL
+  void setExchangeWebsocketPrivateUrlOverride(const std::string& exchange,
+                                              const std::string& wsPrivateUrl) {
+    auto& o = exchangeUrlOverrideMap_[exchange];
+    o.wsPrivateUrl = wsPrivateUrl;
+  }
+
+  // read‑only accessor for overrides (for Session / services / helpers)
+  const ExchangeUrlOverrides* getExchangeUrlOverrides(
+      const std::string& exchange) const {
+    auto it = exchangeUrlOverrideMap_.find(exchange);
+    if (it == exchangeUrlOverrideMap_.end()) {
+      return nullptr;
+    }
+    return &it->second;
+  }
+
 #ifndef CCAPI_EXPOSE_INTERNAL
 
  private:
@@ -437,6 +489,7 @@ class SessionConfigs {
   std::map<std::string, std::string> urlFixMarketDataBase;
   std::map<std::string, int> initialSequenceByExchangeMap;
   std::map<std::string, std::string> credential;
+  std::map<std::string, ExchangeUrlOverrides> exchangeUrlOverrideMap_;
 };
 
 } /* namespace ccapi */

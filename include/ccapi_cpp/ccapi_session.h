@@ -938,6 +938,28 @@ class Session {
     event.setMessageList({message});
     this->onEvent(event, eventQueuePtr);
   }
+
+  inline std::string resolveRestBaseUrl(
+      const std::string& exchange,
+      const SessionConfigs& sessionConfigs) {
+    // runtime override from SessionConfigs
+    if (const auto* o = sessionConfigs.getExchangeUrlOverrides(exchange)) {
+      if (!o->restUrl.empty()) {
+        return o->restUrl;
+      }
+    }
+
+    // fallback to whatever SessionConfigs built from ccapi_macro.h
+    const auto& restMap = sessionConfigs.getUrlRestBase();
+    auto it = restMap.find(exchange);
+    if (it != restMap.end()) {
+      return it->second;
+    }
+
+    // unknown exchange; caller should handle empty
+    return std::string();
+  }
+
 #ifndef SWIG
   virtual void setImmediate(std::function<void()> successHandler) {
     boost::asio::post(*this->serviceContextPtr->ioContextPtr, [this, successHandler]() {
